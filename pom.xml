@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>dev.prita</groupId>
+  <groupId>com.shubham</groupId>
   <artifactId>redrive</artifactId>
   <version>0.1.0</version>
   <name>redrive</name>

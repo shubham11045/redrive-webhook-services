@@ -62,4 +62,4 @@ management:
 
 logging:
   level:
-    dev.prita.redrive: INFO
+    com.shubham.redrive: INFO

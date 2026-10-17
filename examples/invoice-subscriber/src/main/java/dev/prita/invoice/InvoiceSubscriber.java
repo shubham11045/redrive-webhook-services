@@ -1,4 +1,4 @@
-package dev.prita.invoice;
+package com.shubham.invoice;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
