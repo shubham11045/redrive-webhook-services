@@ -1,0 +1,91 @@
+# One command: docker compose up --build
+# App on :8080, chaos subscriber on :9099, Kafka UI on :8081, Grafana on :3000.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: redrive
+      POSTGRES_USER: redrive
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-redrive}
+    ports: ["5433:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redrive"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.8.0
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: INTERNAL://kafka:29092,CONTROLLER://kafka:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  redrive:
+    build: .
+    ports: ["8080:8080"]
+    environment:
+      REDRIVE_DB_URL: jdbc:postgresql://postgres:5432/redrive
+      REDRIVE_DB_USER: redrive
+      REDRIVE_DB_PASSWORD: ${POSTGRES_PASSWORD:-redrive}
+      REDRIVE_KAFKA_BOOTSTRAP: kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  chaos-subscriber:
+    image: eclipse-temurin:21-jdk
+    working_dir: /chaos
+    volumes:
+      - ./chaos:/chaos:ro
+    command: ["java", "ChaosSubscriber.java"]
+    environment:
+      CHAOS_PORT: "9099"
+      CHAOS_FAIL_RATE: "0.0"
+      CHAOS_TIMEOUT_RATE: "0.0"
+      CHAOS_DELAY_MS: "0"
+    ports: ["9099:9099"]
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports: ["8081:8080"]
+    environment:
+      KAFKA_CLUSTERS_0_NAME: redrive
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-redrive}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - ./ops/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - ./ops/grafana-dashboard-provider.yml:/etc/grafana/provisioning/dashboards/provider.yml:ro
+      - ./ops/dashboards:/etc/grafana/provisioning/dashboards/json:ro
+    depends_on:
+      - prometheus

@@ -1,0 +1,118 @@
+{
+  "title": "Redrive",
+  "uid": "redrive-delivery",
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Delivery Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(redrive_deliveries_success_total[1m])",
+          "legendFormat": "delivered/sec"
+        },
+        {
+          "expr": "rate(redrive_delivery_attempts_failed_total[1m])",
+          "legendFormat": "failed attempts/sec"
+        },
+        {
+          "expr": "rate(redrive_deliveries_dead_total[1m])",
+          "legendFormat": "dead-lettered/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Delivery Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "redrive_delivery_attempt_duration_seconds{quantile=\"0.5\"}",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "redrive_delivery_attempt_duration_seconds{quantile=\"0.95\"}",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "redrive_delivery_attempt_duration_seconds{quantile=\"0.99\"}",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Dispatcher Slots Available",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "redrive_delivery_global_slots_available",
+          "legendFormat": "slots"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 200,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 150 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Circuit Breaker Skips",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(redrive_breaker_skips_total[1m])",
+          "legendFormat": "skips/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "schemaVersion": 39
+}

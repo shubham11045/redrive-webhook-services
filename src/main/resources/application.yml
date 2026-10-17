@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: redrive
+  datasource:
+    url: ${REDRIVE_DB_URL:jdbc:postgresql://localhost:5433/redrive}
+    username: ${REDRIVE_DB_USER:redrive}
+    password: ${REDRIVE_DB_PASSWORD:redrive}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${REDRIVE_KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: redrive-delivery
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+    listener:
+      ack-mode: manual
+
+redrive:
+  topic: redrive.events
+  topic-partitions: 6
+  outbox:
+    poll-interval-ms: 500
+    batch-size: 100
+    max-publish-attempts: 10
+  delivery:
+    request-timeout-ms: 10000
+    connect-timeout-ms: 3000
+    max-attempts: 8
+    base-backoff-ms: 2000
+    max-backoff-ms: 600000
+    jitter-ratio: 0.3
+    global-concurrency: 200
+    per-endpoint-concurrency: 4
+    dispatch-poll-interval-ms: 1000
+    dispatch-batch-size: 200
+  breaker:
+    failure-threshold: 5
+    open-cooldown-ms: 30000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    dev.prita.redrive: INFO
