@@ -5,3 +5,6 @@ spring:
       "[security.protocol]": SASL_SSL
       "[sasl.mechanism]": SCRAM-SHA-256
       "[sasl.jaas.config]": 'org.apache.kafka.common.security.scram.ScramLoginModule required username="${REDRIVE_KAFKA_USERNAME}" password="${REDRIVE_KAFKA_PASSWORD}";'
+      "[ssl.truststore.location]": /app/certs/kafka-truststore.p12
+      "[ssl.truststore.password]": "${REDRIVE_KAFKA_TRUSTSTORE_PASSWORD:changeit}"
+      "[ssl.truststore.type]": PKCS12
